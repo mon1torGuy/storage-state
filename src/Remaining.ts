@@ -19,33 +19,54 @@ export class Remain extends DurableObject {
 
 	async initRemainer(key: string, remain: number) {
 		await this.state.storage.put(key, remain);
+		return {
+			success: true,
+			message: "Remain set successfuly",
+			code: 200,
+			data: remain,
+		};
 	}
 
 	async getRemainer(key: string) {
 		const remain = await this.state.storage.get<number>(key);
-		return remain;
+		return {
+			success: true,
+			message: "Remain get successfuly",
+			code: 200,
+			data: remain,
+		};
 	}
 
 	async applyRemainer(key: string) {
 		const keyDetails = await this.getKeyDetails(key);
 
 		if (!keyDetails) {
-			return { error: "Invalid key" };
+			return { success: false, message: "Invalid key", code: 400, data: {} };
 		}
 
 		const remaining = await this.state.storage.get<number>(key);
 
 		if (remaining === undefined) {
-			return { error: "Invalid key" };
+			return { success: false, message: "Invalid key", code: 400, data: {} };
 		}
 
 		if (remaining <= 0) {
-			return { error: "Usage limit exceeded", remaining: 0 };
+			return {
+				success: false,
+				message: "Usage limit exceeded",
+				code: 429,
+				data: {},
+			};
 		}
 
 		await this.state.storage.put(key, remaining - 1);
-
-		return { remaining: remaining - 1 };
+		const updatedRemaining = remaining - 1;
+		return {
+			success: true,
+			message: "Remain apply successfuly",
+			code: 200,
+			data: { remaining: updatedRemaining },
+		};
 	}
 
 	async getKeyDetails(key: string): Promise<KeyDetailsRemaining | null> {

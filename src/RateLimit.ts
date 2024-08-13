@@ -27,11 +27,23 @@ export class RateLimit extends DurableObject {
 		ratelimit: { limit: number; timeWindow: number },
 	) {
 		await this.ctx.storage.put(key, ratelimit);
+
+		return {
+			success: true,
+			message: "Ratelimit set successfuly",
+			code: 200,
+			data: ratelimit,
+		};
 	}
 
 	async getRateLimit(key: string) {
 		const ratelimit = await this.ctx.storage.get<RateLimit>(key);
-		return ratelimit;
+		return {
+			success: true,
+			message: "Ratelimit get successfuly",
+			code: 200,
+			data: ratelimit,
+		};
 	}
 
 	async applyRateLimit(key: string) {
@@ -39,13 +51,13 @@ export class RateLimit extends DurableObject {
 		const keyDetails = await this.getKeyDetails(key);
 
 		if (!keyDetails) {
-			return { error: "Invalid key" };
+			return { success: false, message: "Invalid key", code: 400, data: {} };
 		}
 
 		const { limit, timeWindow } = keyDetails.rl;
 
 		if (!limit || !timeWindow) {
-			return { error: "Invalid key" };
+			return { success: false, message: "Invalid key", code: 400, data: {} };
 		}
 
 		const now = Date.now() / 1000; // Current timestamp in seconds
@@ -59,7 +71,12 @@ export class RateLimit extends DurableObject {
 
 		if (now < expiration) {
 			if (value >= limit) {
-				return { error: "Rate limit exceeded", remaining: 0 };
+				return {
+					success: false,
+					code: 429,
+					message: "Rate limit exceeded",
+					data: { remaining: 0 },
+				};
 			}
 			value++;
 		} else {
@@ -71,7 +88,12 @@ export class RateLimit extends DurableObject {
 
 		const rlremaining = limit - value;
 
-		return { rlremaining };
+		return {
+			success: true,
+			message: "Ratelimit apply successfuly",
+			code: 200,
+			data: { reamin: rlremaining },
+		};
 	}
 
 	async getKeyDetails(key: string): Promise<KeyDetails | null> {
